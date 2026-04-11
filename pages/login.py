@@ -2,29 +2,43 @@ import streamlit as st
 from utils.db import supabase
 
 def show():
-
-    st.markdown("## 🔐 Login")
+    st.title("🔐 Login")
 
     email = st.text_input("Email")
     password = st.text_input("Password", type="password")
 
-    if st.button("Login", use_container_width=True):
+    if st.button("Login"):
 
-        res = supabase.table("users") \
-            .select("*") \
-            .eq("email", email) \
-            .eq("password", password) \
-            .execute()
+        try:
+            res = supabase.auth.sign_in_with_password({
+                "email": email,
+                "password": password
+            })
 
-        if res.data:
-            user = res.data[0]
+            if res.user:
 
-            st.session_state["user"] = user
-            st.session_state["role"] = user["role"]
+                # get role
+                user_data = supabase.table("users") \
+                    .select("*") \
+                    .eq("email", email) \
+                    .execute()
 
-            st.success("✅ Login successful")
-            st.rerun()
-        else:
-            st.error("Invalid credentials")
+                role = user_data.data[0]["role"]
 
-    st.info("Don't have account? Go to Signup")
+                st.session_state["user"] = email
+                st.session_state["role"] = role
+
+                # redirect
+                if role == "student":
+                    st.session_state["page"] = "student"
+                elif role == "faculty":
+                    st.session_state["page"] = "faculty"
+                elif role == "superadmin":
+                    st.session_state["page"] = "superadmin"
+                else:
+                    st.session_state["page"] = "faculty"
+
+                st.rerun()
+
+        except:
+            st.error("❌ Invalid credentials")
