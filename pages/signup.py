@@ -11,26 +11,43 @@ def show():
 
     if st.button("Signup"):
 
+        # ✅ CLEAN EMAIL
+        email = email.strip().lower()
+
+        # ✅ VALIDATIONS
         if not email or not password:
-            st.warning("Fill all fields")
+            st.warning("⚠️ Fill all fields")
+            return
+
+        # 🔥 COLLEGE EMAIL CHECK (FIXED)
+        if not email.endswith("@its.edu.in"):
+            st.error("❌ Use college email id only (@its.edu.in)")
             return
 
         try:
+            # ✅ SIGNUP WITH SUPABASE AUTH
             res = supabase.auth.sign_up({
                 "email": email,
                 "password": password
             })
 
+            # ✅ CHECK USER CREATED
             if res.user:
-                # store role in DB
+
+                # 🔥 STORE ROLE IN DB
                 supabase.table("users").insert({
                     "email": email,
                     "role": role
                 }).execute()
 
-                st.success("✅ Account created! Please login")
+                st.success("✅ Account created successfully! Please login")
+
+                # 🔁 REDIRECT TO LOGIN
                 st.session_state["page"] = "login"
                 st.rerun()
 
+            else:
+                st.error("❌ Signup failed. Try again.")
+
         except Exception as e:
-            st.error(f"Signup failed: {e}")
+            st.error(f"❌ Signup failed: {e}")
