@@ -6,7 +6,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-
+st.image("assets/logo.png", width=120)
 # ================== IMPORTS ==================
 from pages import login, signup, forgot, student, faculty, superadmin, scanner
 from components.ui import apply_style
