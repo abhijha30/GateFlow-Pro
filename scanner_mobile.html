@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GateFlow Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: white;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    #reader {
+      width: 320px;
+      margin: auto;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .box {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .success { background: #16a34a; }
+    .error { background: #dc2626; }
+    .warning { background: #f59e0b; }
+    .info { background: #2563eb; }
+  </style>
+</head>
+
+<body>
+
+<h2>📷 Gate Entry Scanner</h2>
+<p>Scan QR Code using your mobile camera</p>
+
+<div id="reader"></div>
+<div id="result" class="box info">Waiting for scan...</div>
+
+<script>
+const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
+const SUPABASE_KEY = "YOUR_ANON_KEY";
+
+let lastScan = "";
+
+// 🔊 Beep sound
+function beep() {
+    let audio = new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
+    audio.play();
+}
+
+// 🎯 QR SUCCESS
+function onScanSuccess(decodedText) {
+
+    // prevent multiple fast scans
+    if (decodedText === lastScan) return;
+    lastScan = decodedText;
+
+    document.getElementById("result").className = "box info";
+    document.getElementById("result").innerHTML = "🔍 Checking QR...";
+
+    fetch(`${SUPABASE_URL}/rest/v1/applications?qr_code=eq.${decodedText}`, {
+        headers: {
+            "apikey": SUPABASE_KEY,
+            "Authorization": "Bearer " + SUPABASE_KEY
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if (data.length === 0) {
+            document.getElementById("result").className = "box error";
+            document.getElementById("result").innerHTML = "❌ Invalid Pass";
+            beep();
+            return;
+        }
+
+        let user = data[0];
+
+        if (user.entry_done) {
+            document.getElementById("result").className = "box warning";
+            document.getElementById("result").innerHTML = "⚠️ Already Entered";
+            beep();
+            return;
+        }
+
+        // ✅ UPDATE ENTRY
+        fetch(`${SUPABASE_URL}/rest/v1/applications?id=eq.${user.id}`, {
+            method: "PATCH",
+            headers: {
+                "apikey": SUPABASE_KEY,
+                "Authorization": "Bearer " + SUPABASE_KEY,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                entry_done: true
+            })
+        });
+
+        document.getElementById("result").className = "box success";
+        document.getElementById("result").innerHTML =
+            "✅ Entry Allowed: " + (user.name || "Student");
+
+        beep();
+    });
+}
+
+// 🚀 START SCANNER
+let scanner = new Html5QrcodeScanner(
+    "reader",
+    { fps: 10, qrbox: 250 }
+);
+
+scanner.render(onScanSuccess);
+</script>
+
+</body>
+</html>
