@@ -1,53 +1,51 @@
 import streamlit as st
 from utils.db import supabase
 
-def show():
-    st.title("📝 Signup")
+def is_valid_college_email(email):
+    # ✅ allow ITS domain
+    return email.endswith("@its.edu.in")
 
+def show():
+    st.title("📝 Create Account")
+
+    name = st.text_input("Full Name")
     email = st.text_input("College Email")
     password = st.text_input("Password", type="password")
 
-    role = st.selectbox("Role", ["student", "faculty", "staff", "superadmin"])
+    role = st.selectbox("Select Role", ["student", "faculty", "staff", "superadmin"])
 
-    if st.button("Signup"):
+    if st.button("Create Account", use_container_width=True):
 
-        # ✅ CLEAN EMAIL
-        email = email.strip().lower()
-
-        # ✅ VALIDATIONS
-        if not email or not password:
+        if not name or not email or not password:
             st.warning("⚠️ Fill all fields")
             return
 
-        # 🔥 COLLEGE EMAIL CHECK (FIXED)
-        if not email.endswith("@its.edu.in"):
-            st.error("❌ Use college email id only (@its.edu.in)")
+        # ✅ FIXED EMAIL CHECK
+        if not is_valid_college_email(email):
+            st.error("❌ Use college email (@its.edu.in)")
             return
 
         try:
-            # ✅ SIGNUP WITH SUPABASE AUTH
             res = supabase.auth.sign_up({
                 "email": email,
                 "password": password
             })
 
-            # ✅ CHECK USER CREATED
             if res.user:
-
-                # 🔥 STORE ROLE IN DB
+                # ✅ store extra user data
                 supabase.table("users").insert({
+                    "id": res.user.id,
+                    "name": name,
                     "email": email,
                     "role": role
                 }).execute()
 
-                st.success("✅ Account created successfully! Please login")
-
-                # 🔁 REDIRECT TO LOGIN
+                st.success("✅ Account created! Please login")
                 st.session_state["page"] = "login"
                 st.rerun()
 
             else:
-                st.error("❌ Signup failed. Try again.")
+                st.error("Signup failed")
 
         except Exception as e:
-            st.error(f"❌ Signup failed: {e}")
+            st.error(f"❌ {e}")
