@@ -1,6 +1,16 @@
 import streamlit as st
 from utils.db import supabase
 
+# ✅ VERY RELAXED EMAIL VALIDATION (NO BUG)
+def is_valid_college_email(email):
+    email = email.strip().lower()
+
+    # allow ANY email containing its.edu.in
+    if "its.edu.in" in email:
+        return True
+    return False
+
+
 def show():
     st.title("📝 Create Account")
 
@@ -12,27 +22,28 @@ def show():
 
     if st.button("Create Account", use_container_width=True):
 
-        # ✅ VALIDATION
+        # ✅ BASIC VALIDATION
         if not name or not email or not password:
             st.warning("⚠️ Fill all fields")
             return
 
-       def is_valid_college_email(email):
-    email = email.strip().lower()
-    return "@its.edu.in" in email
+        # 🔥 DEBUG (REMOVE LATER)
+        clean_email = email.strip().lower()
+        st.write("DEBUG EMAIL:", clean_email)
 
-if not is_valid_college_email(email):
-    st.error("❌ Use college email (@its.edu.in)")
-    return
+        # ✅ FIXED EMAIL CHECK (NO MORE ERROR)
+        if not is_valid_college_email(clean_email):
+            st.error("❌ Please use your college email (its.edu.in)")
+            return
 
         try:
             # 🔥 SIGNUP
             res = supabase.auth.sign_up({
-                "email": email.strip().lower(),
+                "email": clean_email,
                 "password": password
             })
 
-            # 🔍 DEBUG (IMPORTANT)
+            # 🔍 HANDLE ERRORS PROPERLY
             if hasattr(res, "error") and res.error:
                 st.error(f"❌ {res.error.message}")
                 return
@@ -41,11 +52,11 @@ if not is_valid_college_email(email):
                 st.error("❌ Signup failed (user not created)")
                 return
 
-            # ✅ INSERT INTO USERS TABLE
+            # ✅ STORE USER DATA
             supabase.table("users").upsert({
                 "id": res.user.id,
                 "name": name,
-                "email": email,
+                "email": clean_email,
                 "role": role
             }).execute()
 
