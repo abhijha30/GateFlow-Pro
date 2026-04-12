@@ -1,4 +1,18 @@
 import streamlit as st
+st.markdown("""
+<style>
+body {
+    background-color: #f8f9fa;
+}
+.card {
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ================== PAGE CONFIG ==================
 st.set_page_config(
