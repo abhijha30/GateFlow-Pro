@@ -16,29 +16,27 @@ def show():
             })
 
             if res.user:
-
-                # get role
                 user_data = supabase.table("users") \
                     .select("*") \
-                    .eq("email", email) \
+                    .eq("id", res.user.id) \
                     .execute()
 
                 role = user_data.data[0]["role"]
 
-                st.session_state["user"] = email
+                st.session_state["user"] = res.user
                 st.session_state["role"] = role
 
-                # redirect
+                # 🔥 redirect
                 if role == "student":
                     st.session_state["page"] = "student"
                 elif role == "faculty":
                     st.session_state["page"] = "faculty"
                 elif role == "superadmin":
                     st.session_state["page"] = "superadmin"
-                else:
+                elif role == "staff":
                     st.session_state["page"] = "faculty"
 
                 st.rerun()
 
-        except:
-            st.error("❌ Invalid credentials")
+        except Exception as e:
+            st.error("Invalid credentials")
