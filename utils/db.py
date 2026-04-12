@@ -22,6 +22,9 @@ def create_user(data):
 def get_users():
     return supabase.table("users").select("*").execute()
 
+def get_all():
+    return supabase.table("registrations").select("*").execute()
+
 # APPLICATIONS
 def apply_event(data):
     return supabase.table("applications").insert(data).execute()
