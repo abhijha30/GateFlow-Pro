@@ -5,20 +5,21 @@ def show():
     st.title("📝 Signup")
 
     name = st.text_input("Full Name")
-    email = st.text_input("Email")
+    email = st.text_input("College Email")
     password = st.text_input("Password", type="password")
 
     role = st.selectbox("Role", ["student", "faculty", "staff", "superadmin"])
 
-    if st.button("Create Account"):
-
-        email = email.strip().lower()
+    if st.button("Signup"):
 
         if not name or not email or not password:
             st.warning("Fill all fields")
             return
 
-        # ❌ NO EMAIL RESTRICTION (TEMPORARY FIX)
+        # ✅ FIXED EMAIL CHECK (ITS domain)
+        if not email.lower().endswith("@its.edu.in"):
+            st.error("Use college email (@its.edu.in)")
+            return
 
         try:
             res = supabase.auth.sign_up({
@@ -26,22 +27,20 @@ def show():
                 "password": password
             })
 
-            st.write(res)  # DEBUG
+            if res.user:
+                supabase.table("users").insert({
+                    "id": res.user.id,
+                    "name": name,
+                    "email": email,
+                    "role": role
+                }).execute()
 
-            if not res.user:
+                st.success("✅ Account created! Please login")
+                st.session_state["page"] = "login"
+                st.rerun()
+
+            else:
                 st.error("Signup failed")
-                return
-
-            supabase.table("users").upsert({
-                "id": res.user.id,
-                "name": name,
-                "email": email,
-                "role": role
-            }).execute()
-
-            st.success("✅ Account created")
-            st.session_state["page"] = "login"
-            st.rerun()
 
         except Exception as e:
-            st.error(e)
+            st.error(f"Error: {e}")
