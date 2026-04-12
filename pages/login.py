@@ -1,6 +1,6 @@
 import streamlit as st
 from utils.db import supabase
-
+st.write(res)
 def show():
     st.title("🔐 Login")
 
