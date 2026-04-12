@@ -10,13 +10,12 @@ def show():
 
     role = st.selectbox("Role", ["student", "faculty", "staff", "superadmin"])
 
-    if st.button("Signup"):
+    if st.button("Create Account"):
 
         if not name or not email or not password:
             st.warning("Fill all fields")
             return
 
-        # ✅ FIXED EMAIL CHECK (ITS domain)
         if not email.lower().endswith("@its.edu.in"):
             st.error("Use college email (@its.edu.in)")
             return
@@ -35,7 +34,7 @@ def show():
                     "role": role
                 }).execute()
 
-                st.success("✅ Account created! Please login")
+                st.success("✅ Account created! Now login")
                 st.session_state["page"] = "login"
                 st.rerun()
 
@@ -43,4 +42,4 @@ def show():
                 st.error("Signup failed")
 
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(str(e))
