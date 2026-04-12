@@ -7,48 +7,56 @@ def show():
     email = st.text_input("Email")
     password = st.text_input("Password", type="password")
 
-    if st.button("Login"):
+    if st.button("Login", use_container_width=True):
+        email = email.strip().lower()
 
         if not email or not password:
-            st.warning("Enter email & password")
+            st.warning("Enter email and password")
             return
 
         try:
-            res = supabase.auth.sign_in_with_password({
+            auth_res = supabase.auth.sign_in_with_password({
                 "email": email,
                 "password": password
             })
 
-            if res.user:
+            if not auth_res or not auth_res.user:
+                st.error("Invalid login credentials")
+                return
 
-                user_data = supabase.table("users") \
-                    .select("*") \
-                    .eq("id", res.user.id) \
-                    .execute()
+            user_id = auth_res.user.id
 
-                if not user_data.data:
-                    st.error("User role not found")
-                    return
+            user_data = supabase.table("users") \
+                .select("*") \
+                .eq("id", user_id) \
+                .execute()
 
-                role = user_data.data[0]["role"]
+            if not user_data.data:
+                st.error("Login succeeded, but profile not found in users table")
+                return
 
-                st.session_state["user"] = res.user
-                st.session_state["role"] = role
+            user = user_data.data[0]
+            role = user.get("role", "student")
 
-                # 🔥 Redirect
-                if role == "student":
-                    st.session_state["page"] = "student"
-                elif role == "faculty":
-                    st.session_state["page"] = "faculty"
-                elif role == "superadmin":
-                    st.session_state["page"] = "superadmin"
-                else:
-                    st.session_state["page"] = "student"
+            st.session_state["user"] = {
+                "id": user_id,
+                "email": email,
+                "name": user.get("name", "")
+            }
+            st.session_state["role"] = role
 
-                st.rerun()
-
+            if role == "student":
+                st.session_state["page"] = "student"
+            elif role == "faculty":
+                st.session_state["page"] = "faculty"
+            elif role == "staff":
+                st.session_state["page"] = "faculty"
+            elif role == "superadmin":
+                st.session_state["page"] = "superadmin"
             else:
-                st.error("Invalid credentials")
+                st.session_state["page"] = "student"
+
+            st.rerun()
 
         except Exception as e:
             st.error(f"Login failed: {e}")
