@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.db import supabase
+
 def show():
     st.title("🔐 Login")
 
@@ -8,55 +9,36 @@ def show():
 
     if st.button("Login", use_container_width=True):
 
-        email = email.strip().lower()
-
-        if not email or not password:
-            st.warning("Enter email and password")
-            return
-
         try:
             res = supabase.auth.sign_in_with_password({
                 "email": email,
                 "password": password
             })
 
-            # 🔥 IMPORTANT FIX
-            if res is None or res.user is None:
-                st.error("❌ Invalid credentials")
-                return
+            if res.user:
+                # 🔥 GET ROLE FROM DB
+                user_data = supabase.table("users") \
+                    .select("*") \
+                    .eq("email", email) \
+                    .single() \
+                    .execute()
 
-            # ✅ LOGIN SUCCESS
-            user_id = res.user.id
+                role = user_data.data["role"]
 
-            # 🔍 fetch role
-            db_user = supabase.table("users") \
-                .select("*") \
-                .eq("id", user_id) \
-                .execute()
+                st.session_state["user"] = email
+                st.session_state["role"] = role
 
-            if not db_user.data:
-                st.error("⚠️ User profile missing. Contact admin.")
-                return
+                if role == "student":
+                    st.session_state["page"] = "student"
+                elif role in ["faculty", "staff"]:
+                    st.session_state["page"] = "faculty"
+                elif role == "superadmin":
+                    st.session_state["page"] = "superadmin"
 
-            user = db_user.data[0]
-            role = user["role"]
+                st.rerun()
 
-            # 💾 SESSION
-            st.session_state["user"] = user
-            st.session_state["role"] = role
-
-            # 🚀 REDIRECT
-            if role == "student":
-                st.session_state["page"] = "student"
-            elif role == "faculty":
-                st.session_state["page"] = "faculty"
-            elif role == "staff":
-                st.session_state["page"] = "faculty"
-            elif role == "superadmin":
-                st.session_state["page"] = "superadmin"
-
-            st.success("✅ Login successful")
-            st.rerun()
+            else:
+                st.error("Invalid credentials")
 
         except Exception as e:
-            st.error(f"Login error: {e}")
+            st.error("❌ Invalid login credentials")
