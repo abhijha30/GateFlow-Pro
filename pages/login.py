@@ -9,6 +9,10 @@ def show():
 
     if st.button("Login"):
 
+        if not email or not password:
+            st.warning("Enter email & password")
+            return
+
         try:
             res = supabase.auth.sign_in_with_password({
                 "email": email,
@@ -16,27 +20,35 @@ def show():
             })
 
             if res.user:
+
                 user_data = supabase.table("users") \
                     .select("*") \
                     .eq("id", res.user.id) \
                     .execute()
+
+                if not user_data.data:
+                    st.error("User role not found")
+                    return
 
                 role = user_data.data[0]["role"]
 
                 st.session_state["user"] = res.user
                 st.session_state["role"] = role
 
-                # 🔥 redirect
+                # 🔥 Redirect
                 if role == "student":
                     st.session_state["page"] = "student"
                 elif role == "faculty":
                     st.session_state["page"] = "faculty"
                 elif role == "superadmin":
                     st.session_state["page"] = "superadmin"
-                elif role == "staff":
-                    st.session_state["page"] = "faculty"
+                else:
+                    st.session_state["page"] = "student"
 
                 st.rerun()
 
+            else:
+                st.error("Invalid credentials")
+
         except Exception as e:
-            st.error("Invalid credentials")
+            st.error(f"Login failed: {e}")
