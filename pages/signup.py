@@ -17,9 +17,13 @@ def show():
             st.warning("⚠️ Fill all fields")
             return
 
-        if not email.strip().lower().endswith("@its.edu.in"):
-            st.error("❌ Use college email (@its.edu.in)")
-            return
+       def is_valid_college_email(email):
+    email = email.strip().lower()
+    return "@its.edu.in" in email
+
+if not is_valid_college_email(email):
+    st.error("❌ Use college email (@its.edu.in)")
+    return
 
         try:
             # 🔥 SIGNUP
