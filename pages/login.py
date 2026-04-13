@@ -9,36 +9,63 @@ def show():
 
     if st.button("Login", use_container_width=True):
 
+        email = email.strip()
+        password = password.strip()
+
+        if not email or not password:
+            st.warning("⚠️ Enter email & password")
+            return
+
         try:
+            # 🔥 LOGIN AUTH
             res = supabase.auth.sign_in_with_password({
                 "email": email,
                 "password": password
             })
 
             if res.user:
-                # 🔥 GET ROLE FROM DB
+
+                # 🔥 GET FULL USER DATA FROM DB
                 user_data = supabase.table("users") \
                     .select("*") \
-                    .eq("email", email) \
+                    .eq("id", res.user.id) \
                     .single() \
                     .execute()
 
-                role = user_data.data["role"]
+                if not user_data.data:
+                    st.error("User not found in database")
+                    return
 
-                st.session_state["user"] = email
-                st.session_state["role"] = role
+                user = user_data.data
 
-                if role == "student":
+                # ✅ STORE FULL USER OBJECT
+                st.session_state["user"] = user
+                st.session_state["role"] = user["role"]
+
+                # ✅ ROLE BASED REDIRECT
+                if user["role"] == "student":
                     st.session_state["page"] = "student"
-                elif role in ["faculty", "staff"]:
+
+                elif user["role"] in ["faculty", "staff"]:
                     st.session_state["page"] = "faculty"
-                elif role == "superadmin":
+
+                elif user["role"] == "superadmin":
                     st.session_state["page"] = "superadmin"
 
+                st.success("✅ Login successful")
                 st.rerun()
 
             else:
-                st.error("Invalid credentials")
+                st.error("❌ Invalid credentials")
 
         except Exception as e:
-            st.error("❌ Invalid login credentials")
+            error_msg = str(e)
+
+            if "Invalid login credentials" in error_msg:
+                st.error("❌ Wrong email or password")
+
+            elif "Email not confirmed" in error_msg:
+                st.error("⚠️ Please verify your email first")
+
+            else:
+                st.error(f"Login failed: {error_msg}")
