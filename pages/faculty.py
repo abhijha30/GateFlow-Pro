@@ -73,7 +73,8 @@ def show():
 
 selected_event_name = st.selectbox("Filter by Event", list(event_map.keys()))
 selected_event_id = event_map[selected_event_name]
-    data = get_registrations(selected_event_id).data or []
+
+data = get_registrations(selected_event_id).data or []
     if not data:
         st.info("No registrations for this event")
         return
