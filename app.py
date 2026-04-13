@@ -1,12 +1,27 @@
 import streamlit as st
+
+# ================== PAGE CONFIG (MUST BE FIRST) ==================
+st.set_page_config(
+    page_title="GateFlow",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# ================== GLOBAL CSS ==================
 st.markdown("""
 <style>
+
+/* Background */
+body {
+    background-color: #0e1117;
+}
+
 /* Fix text visibility */
 html, body, [class*="css"]  {
     color: #ffffff;
 }
 
-/* Input fields */
+/* Inputs */
 input, textarea {
     color: black !important;
 }
@@ -31,34 +46,19 @@ label {
     padding-top: 2rem;
 }
 
-/* Fix selectbox text */
+/* Selectbox fix */
 div[data-baseweb="select"] {
     color: black !important;
 }
-</style>
-""", unsafe_allow_html=True)
-st.markdown("""
-<style>
-body {
-    background-color: #f8f9fa;
+
+/* Footer */
+footer {
+    visibility: hidden;
 }
-.card {
-    background: white;
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
+
 </style>
 """, unsafe_allow_html=True)
 
-# ================== PAGE CONFIG ==================
-st.set_page_config(
-    page_title="GateFlow",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
-st.image("assets/logo.png", width=120)
 # ================== IMPORTS ==================
 from pages import login, signup, forgot, student, faculty, superadmin, scanner
 from components.ui import apply_style
@@ -66,6 +66,9 @@ from components.navbar import show_navbar
 
 # ================== APPLY UI ==================
 apply_style()
+
+# ================== LOGO ==================
+st.image("assets/logo.png", width=120)
 
 # ================== SESSION INIT ==================
 if "page" not in st.session_state:
@@ -77,7 +80,7 @@ if "user" not in st.session_state:
 if "role" not in st.session_state:
     st.session_state["role"] = None
 
-# ================== AUTO REDIRECT AFTER LOGIN ==================
+# ================== AUTO REDIRECT ==================
 if st.session_state["user"]:
 
     role = st.session_state["role"]
@@ -85,10 +88,7 @@ if st.session_state["user"]:
     if role == "student":
         st.session_state["page"] = "student"
 
-    elif role == "faculty":
-        st.session_state["page"] = "faculty"
-
-    elif role == "staff":
+    elif role in ["faculty", "staff"]:
         st.session_state["page"] = "faculty"
 
     elif role == "superadmin":
@@ -126,7 +126,7 @@ else:
     st.session_state["page"] = "login"
     st.rerun()
 
-# ================== AUTH NAVIGATION ==================
+# ================== AUTH NAV ==================
 if not st.session_state["user"]:
 
     st.divider()
@@ -134,20 +134,17 @@ if not st.session_state["user"]:
 
     col1, col2, col3 = st.columns(3)
 
-    with col1:
-        if st.button("🔐 Login", use_container_width=True):
-            st.session_state["page"] = "login"
-            st.rerun()
+    if col1.button("🔐 Login", use_container_width=True):
+        st.session_state["page"] = "login"
+        st.rerun()
 
-    with col2:
-        if st.button("📝 Signup", use_container_width=True):
-            st.session_state["page"] = "signup"
-            st.rerun()
+    if col2.button("📝 Signup", use_container_width=True):
+        st.session_state["page"] = "signup"
+        st.rerun()
 
-    with col3:
-        if st.button("🔑 Forgot Password", use_container_width=True):
-            st.session_state["page"] = "forgot"
-            st.rerun()
+    if col3.button("🔑 Forgot Password", use_container_width=True):
+        st.session_state["page"] = "forgot"
+        st.rerun()
 
 # ================== FOOTER ==================
 st.markdown("""
