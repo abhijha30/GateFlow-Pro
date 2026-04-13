@@ -15,6 +15,9 @@ def get_events():
 def delete_event(event_id):
     return supabase.table("events").delete().eq("id", event_id).execute()
 
+def register_user(data):
+    return supabase.table("registrations").insert(data).execute()
+
 # USERS
 def create_user(data):
     return supabase.table("users").insert(data).execute()
