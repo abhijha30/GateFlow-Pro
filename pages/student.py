@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.db import *
+from utils.db import supabase, register_user
 
 def show():
 
