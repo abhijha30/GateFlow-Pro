@@ -8,10 +8,10 @@ def get_events():
     return supabase.table("events").select("*").execute()
 
 # 🔹 GET REGISTRATIONS (EVENT-WISE)
-def get_registrations(event_name):
+def get_registrations(event_id):
     return supabase.table("registrations") \
         .select("*") \
-        .eq("event_name", event_name) \
+        .eq("event_id", event_id) \
         .execute()
 
 
