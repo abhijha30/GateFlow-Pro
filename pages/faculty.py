@@ -69,12 +69,11 @@ def show():
         st.info("No events available")
         return
 
-    event_names = [e["name"] for e in events]
+    event_map = {e["name"]: e["id"] for e in events}
 
-    selected_event = st.selectbox("Filter by Event", event_names)
-
-    data = get_registrations(selected_event).data or []
-
+selected_event_name = st.selectbox("Filter by Event", list(event_map.keys()))
+selected_event_id = event_map[selected_event_name]
+    data = get_registrations(selected_event_id).data or []
     if not data:
         st.info("No registrations for this event")
         return
