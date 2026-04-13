@@ -1,6 +1,44 @@
 import streamlit as st
 st.markdown("""
 <style>
+/* Fix text visibility */
+html, body, [class*="css"]  {
+    color: #ffffff;
+}
+
+/* Input fields */
+input, textarea {
+    color: black !important;
+}
+
+/* Labels */
+label {
+    color: #ffffff !important;
+    font-weight: 500;
+}
+
+/* Buttons */
+.stButton button {
+    background: linear-gradient(90deg, #00c6ff, #0072ff);
+    color: white;
+    border-radius: 10px;
+    height: 45px;
+    font-weight: 600;
+}
+
+/* Cards */
+.block-container {
+    padding-top: 2rem;
+}
+
+/* Fix selectbox text */
+div[data-baseweb="select"] {
+    color: black !important;
+}
+</style>
+""", unsafe_allow_html=True)
+st.markdown("""
+<style>
 body {
     background-color: #f8f9fa;
 }
