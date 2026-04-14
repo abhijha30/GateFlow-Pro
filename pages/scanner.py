@@ -4,7 +4,7 @@ import cv2
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 from datetime import datetime
 
-# ================= QR SCANNER CLASS =================
+# ================= QR SCANNER =================
 class QRScanner(VideoTransformerBase):
     def __init__(self):
         self.detector = cv2.QRCodeDetector()
@@ -14,7 +14,7 @@ class QRScanner(VideoTransformerBase):
 
         data, bbox, _ = self.detector.detectAndDecode(img)
 
-        if data:
+        if data and "scanned_qr" not in st.session_state:
             st.session_state["scanned_qr"] = data
 
         return img
@@ -23,7 +23,7 @@ class QRScanner(VideoTransformerBase):
 # ================= MAIN =================
 def show():
 
-    st.title("📷 Auto QR Scanner")
+    st.title("📷 GateFlow Scanner")
 
     # 🔥 SELECT EVENT
     events = supabase.table("events").select("*").execute().data or []
@@ -36,44 +36,38 @@ def show():
     selected_event = st.selectbox("🎯 Select Event", list(event_map.keys()))
     event_id = event_map[selected_event]
 
-    # 🔥 LIVE COUNT
-    total = supabase.table("registrations") \
-        .select("*", count="exact") \
-        .eq("event_id", event_id) \
-        .execute()
-
-    checked = supabase.table("registrations") \
-        .select("*", count="exact") \
-        .eq("event_id", event_id) \
-        .eq("checked_in", True) \
-        .execute()
-
-    st.markdown(f"""
-    ### 📊 Live Stats  
-    ✅ Checked In: {checked.count}  
-    👥 Total: {total.count}
-    """)
-
     st.divider()
 
-    # 🔥 CAMERA STREAM
-    webrtc_streamer(
-        key="scanner",
-        video_transformer_factory=QRScanner,
-        media_stream_constraints={"video": True, "audio": False},
-    )
+    # 🔥 START / STOP CONTROL
+    if "scanner_on" not in st.session_state:
+        st.session_state["scanner_on"] = False
 
-    # 🔥 AUTO DETECT RESULT
+    col1, col2 = st.columns(2)
+
+    if col1.button("▶ Start Scanner"):
+        st.session_state["scanner_on"] = True
+
+    if col2.button("⏹ Stop Scanner"):
+        st.session_state["scanner_on"] = False
+
+    # 🔥 CAMERA STREAM
+    if st.session_state["scanner_on"]:
+        webrtc_streamer(
+            key="scanner",
+            video_transformer_factory=QRScanner,
+            media_stream_constraints={"video": True, "audio": False},
+        )
+
+    # 🔥 QR RESULT
     qr_data = st.session_state.get("scanned_qr")
 
     if qr_data:
-
-        st.success(f"QR Detected: {qr_data}")
 
         try:
             res = supabase.table("registrations") \
                 .select("*") \
                 .eq("qr_id", qr_data) \
+                .eq("event_id", event_id) \
                 .execute()
 
             if not res.data:
@@ -86,9 +80,12 @@ def show():
             st.error(f"DB Error: {e}")
             return
 
-        # 🔥 ENTRY LOGIC
+        # 🔥 STOP CAMERA AFTER SCAN
+        st.session_state["scanner_on"] = False
+
+        # 🔥 CHECK ENTRY
         if user.get("checked_in"):
-            st.warning(f"⚠ Already Entered: {user['name']}")
+            st.warning(f"⚠ Already Present: {user['name']}")
         else:
             supabase.table("registrations").update({
                 "checked_in": True,
@@ -102,15 +99,18 @@ def show():
             </audio>
             """, unsafe_allow_html=True)
 
+            # 🎯 SHOW DETAILS
             st.success(f"""
-            ✅ ENTRY ALLOWED  
+            ✅ ENTRY MARKED  
 
-            👤 {user['name']}  
-            📧 {user['email']}  
+            👤 Name: {user['name']}  
+            📧 Email: {user['email']}  
+            🎓 Course: {user.get('course','')}  
             🎯 Event: {selected_event}
             """)
 
-            st.balloons()
-
-            # reset QR
+        # 🔥 RESET BUTTON
+        if st.button("🔄 Scan Next Student"):
             st.session_state["scanned_qr"] = None
+            st.session_state["scanner_on"] = True
+            st.rerun()
