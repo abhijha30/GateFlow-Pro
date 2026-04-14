@@ -37,6 +37,32 @@ def show():
     event_id = event_map[selected_event]
 
     st.divider()
+    
+    # 🔥 COUNTERS
+total = supabase.table("registrations") \
+    .select("*", count="exact") \
+    .eq("event_id", event_id) \
+    .execute()
+
+approved = supabase.table("registrations") \
+    .select("*", count="exact") \
+    .eq("event_id", event_id) \
+    .eq("status", "approved") \
+    .execute()
+
+scanned = supabase.table("registrations") \
+    .select("*", count="exact") \
+    .eq("event_id", event_id) \
+    .eq("checked_in", True) \
+    .execute()
+
+st.markdown(f"""
+### 📊 Live Event Stats  
+
+👥 Total Registered: **{total.count}**  
+✅ Approved: **{approved.count}**  
+🎟 Scanned Entry: **{scanned.count}**
+""")
 
     # 🔥 START / STOP CONTROL
     if "scanner_on" not in st.session_state:
