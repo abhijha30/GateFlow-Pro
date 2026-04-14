@@ -10,6 +10,23 @@ st.set_page_config(
 # ================== GLOBAL CSS ==================
 st.markdown("""
 <style>
+button {
+    height: 50px !important;
+    font-size: 18px !important;
+}
+
+.stTextInput input {
+    font-size: 18px !important;
+}
+
+.stSelectbox div {
+    font-size: 18px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<style>
 
 /* Background */
 body {
