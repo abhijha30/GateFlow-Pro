@@ -98,7 +98,7 @@ if "role" not in st.session_state:
     st.session_state["role"] = None
 
 # ================== AUTO REDIRECT ==================
-if st.session_state["user"]:
+if st.session_state["user"] and st.session_state["page"] == "login":
 
     role = st.session_state["role"]
 
