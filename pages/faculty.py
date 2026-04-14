@@ -94,34 +94,32 @@ def show():
 #Approve
     if col1.button("✅ Approve", key=f"a_{u['id']}"):
 
-    try:
-        import uuid
-        from utils.qr import generate_qr
-        from utils.mail import send_qr
+        try:
+            import uuid
+            from utils.qr import generate_qr
+            from utils.mail import send_qr
+        
+            qr_id = str(uuid.uuid4())
 
-        qr_id = str(uuid.uuid4())
-
-        qr_path = generate_qr(qr_id)
-
-        st.write("QR Path:", qr_path)  # 👈 DEBUG
-
+            qr_path = generate_qr(qr_id)
+    
         # update DB
-        supabase.table("registrations").update({
-            "status": "approved",
-            "qr_id": qr_id
-        }).eq("id", u["id"]).execute()
+            supabase.table("registrations").update({
+                "status": "approved",
+                "qr_id": qr_id
+            }).eq("id", u["id"]).execute()
 
         # send mail
-        st.write("Sending mail to:", u["email"])  # 👈 DEBUG
+            send_qr(u["email"], qr_path)
 
-        send_qr(u["email"], qr_path)
+            st.success("✅ Approved & Mail Sent")
 
-        st.success("Approved + Mail triggered")
+        except Exception as e:
+            st.error(f"Error: {e}")
 
-    except Exception as e:
-        st.error(f"ERROR: {e}")
+        st.rerun()
 
-    st.rerun()
+        
 
         if col2.button("❌ Reject", key=f"r_{u['id']}"):
             update_status(u["id"], "rejected")
