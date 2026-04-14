@@ -1,5 +1,6 @@
 import streamlit as st
 import uuid
+import pandas as pd
 from utils.qr import generate_qr
 from utils.mail import send_qr
 from utils.db import supabase
@@ -91,6 +92,42 @@ def show():
         """)
 
         col1, col2 = st.columns(2)
+
+    # ================= DOWNLOAD EXCEL =================
+st.divider()
+st.subheader("📥 Download Attendance")
+
+if st.button("⬇ Download Excel", use_container_width=True):
+
+    data = supabase.table("registrations") \
+        .select("*") \
+        .eq("event_id", selected_event_id) \
+        .execute()
+
+    rows = data.data or []
+
+    if not rows:
+        st.warning("No data to download")
+    else:
+        df = pd.DataFrame(rows)
+
+        # Optional: clean columns
+        df = df[[
+            "name", "email", "mobile", "course", "year",
+            "status", "checked_in", "scanned_at"
+        ]]
+
+        file_name = f"{selected_event_name}_attendance.xlsx"
+
+        df.to_excel(file_name, index=False)
+
+        with open(file_name, "rb") as f:
+            st.download_button(
+                label="📥 Download File",
+                data=f,
+                file_name=file_name,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 #Approve
     if col1.button("✅ Approve", key=f"a_{u['id']}"):
 
