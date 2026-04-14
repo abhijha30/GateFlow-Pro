@@ -41,7 +41,6 @@ def show():
     if "selected_event" in st.session_state:
 
         e = st.session_state.get("selected_event")
-
         if not e:
             return
 
