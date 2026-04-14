@@ -1,4 +1,7 @@
 import streamlit as st
+import uuid
+from utils.qr import generate_qr
+from utils.mail import send_qr
 from utils.db import supabase
 import base64
 
@@ -90,9 +93,29 @@ def show():
         col1, col2 = st.columns(2)
 
         if col1.button("✅ Approve", key=f"a_{u['id']}"):
-            update_status(u["id"], "approved")
-            st.success("Approved")
-            st.rerun()
+
+    try:
+        # 🔥 Generate unique QR
+        qr_id = str(uuid.uuid4())
+
+        # 🔥 Generate QR image
+        qr_path = generate_qr(qr_id)
+
+        # 🔥 Update DB
+        supabase.table("registrations").update({
+            "status": "approved",
+            "qr_id": qr_id
+        }).eq("id", u["id"]).execute()
+
+        # 🔥 SEND EMAIL
+        send_qr(u["email"], qr_path)
+
+        st.success("✅ Approved & Mail Sent")
+
+    except Exception as e:
+        st.error(f"Error: {e}")
+
+    st.rerun()
 
         if col2.button("❌ Reject", key=f"r_{u['id']}"):
             update_status(u["id"], "rejected")
