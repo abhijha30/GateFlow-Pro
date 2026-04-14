@@ -33,59 +33,33 @@ def show():
 
     # ================= EVENT LIST =================
     for e in filtered:
-
         if st.button(f"🎯 {e['name']} - Register", key=f"event_{e['id']}"):
             st.session_state["selected_event"] = e
             st.rerun()
 
     # ================= FORM =================
-    # ================= FORM =================
-if "selected_event" in st.session_state:
+    if "selected_event" in st.session_state:
 
-    e = st.session_state.get("selected_event")
+        e = st.session_state.get("selected_event")
 
-    if not e:
-        return
-
-    st.divider()
-    st.markdown(f"### 📝 Register for {e['name']}")
-
-    mobile = st.text_input("Mobile")
-    course = st.selectbox("Course", ["BBA", "BCA"])
-    year = st.selectbox("Year", ["1st", "2nd", "3rd"])
-
-    if st.button("Submit Application", use_container_width=True):
-
-        mobile = mobile.strip()
-
-        if not mobile:
-            st.warning("Enter mobile number")
+        if not e:
             return
 
-        existing = supabase.table("registrations") \
-            .select("*") \
-            .eq("email", st.session_state["user"]["email"]) \
-            .eq("event_id", e["id"]) \
-            .execute()
+        st.divider()
+        st.markdown(f"### 📝 Register for {e['name']}")
 
-        if existing.data:
-            st.warning("Already applied for this event")
-            return
+        mobile = st.text_input("Mobile")
+        course = st.selectbox("Course", ["BBA", "BCA"])
+        year = st.selectbox("Year", ["1st", "2nd", "3rd"])
 
-        supabase.table("registrations").insert({
-            "user_id": st.session_state["user"]["id"],
-            "event_id": e["id"],
-            "name": st.session_state["user"]["name"],
-            "email": st.session_state["user"]["email"],
-            "mobile": mobile,
-            "course": course,
-            "year": year,
-            "status": "pending"
-        }).execute()
+        if st.button("Submit Application", use_container_width=True):
 
-        st.success("✅ Application submitted")
-        del st.session_state["selected_event"]
-        st.rerun()
+            mobile = mobile.strip()
+
+            if not mobile:
+                st.warning("Enter mobile number")
+                return
+
             # 🔥 CHECK DUPLICATE
             existing = supabase.table("registrations") \
                 .select("*") \
