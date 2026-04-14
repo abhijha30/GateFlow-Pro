@@ -1,24 +1,43 @@
 import streamlit as st
 from utils.db import supabase
+import av
 import cv2
-import numpy as np
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+from datetime import datetime
 
+# ================= QR SCANNER CLASS =================
+class QRScanner(VideoTransformerBase):
+    def __init__(self):
+        self.detector = cv2.QRCodeDetector()
+
+    def transform(self, frame):
+        img = frame.to_ndarray(format="bgr24")
+
+        data, bbox, _ = self.detector.detectAndDecode(img)
+
+        if data:
+            st.session_state["scanned_qr"] = data
+
+        return img
+
+
+# ================= MAIN =================
 def show():
 
-    st.title("📷 GateFlow Scanner")
+    st.title("📷 Auto QR Scanner")
 
     # 🔥 SELECT EVENT
     events = supabase.table("events").select("*").execute().data or []
 
     if not events:
-        st.warning("No events found")
+        st.warning("No events")
         return
 
     event_map = {e["name"]: e["id"] for e in events}
     selected_event = st.selectbox("🎯 Select Event", list(event_map.keys()))
     event_id = event_map[selected_event]
 
-    # 🔥 LIVE COUNTER
+    # 🔥 LIVE COUNT
     total = supabase.table("registrations") \
         .select("*", count="exact") \
         .eq("event_id", event_id) \
@@ -33,65 +52,62 @@ def show():
     st.markdown(f"""
     ### 📊 Live Stats  
     ✅ Checked In: {checked.count}  
-    👥 Total Registered: {total.count}
+    👥 Total: {total.count}
     """)
 
     st.divider()
 
-    # 🔥 CAMERA
-    img_file = st.camera_input("📷 Scan QR Code")
+    # 🔥 CAMERA STREAM
+    webrtc_streamer(
+        key="scanner",
+        video_transformer_factory=QRScanner,
+        media_stream_constraints={"video": True, "audio": False},
+    )
 
-    if img_file is not None:
+    # 🔥 AUTO DETECT RESULT
+    qr_data = st.session_state.get("scanned_qr")
 
-        file_bytes = np.asarray(bytearray(img_file.read()), dtype=np.uint8)
-        img = cv2.imdecode(file_bytes, 1)
+    if qr_data:
 
-        detector = cv2.QRCodeDetector()
-        data, bbox, _ = detector.detectAndDecode(img)
+        st.success(f"QR Detected: {qr_data}")
 
-        if data:
+        res = supabase.table("registrations") \
+            .select("*") \
+            .eq("qr_id", qr_data) \
+            .eq("event_id", event_id) \
+            .execute()
 
-            st.success(f"🎯 QR Detected")
+        if res.data:
 
-            # 🔥 CHECK DB
-            res = supabase.table("registrations") \
-                .select("*") \
-                .eq("qr_id", data) \
-                .eq("event_id", event_id) \
-                .execute()
+            user = res.data[0]
 
-            if res.data:
-
-                user = res.data[0]
-
-                if user.get("checked_in"):
-                    st.warning(f"⚠ Already Entered: {user['name']}")
-                else:
-                    supabase.table("registrations").update({
-                        "checked_in": True
-                    }).eq("id", user["id"]).execute()
-
-                    # 🔊 BEEP SOUND
-                    st.markdown("""
-                    <audio autoplay>
-                        <source src="https://www.soundjay.com/buttons/sounds/beep-07.mp3" type="audio/mpeg">
-                    </audio>
-                    """, unsafe_allow_html=True)
-
-                    st.success(f"""
-                    ✅ ENTRY ALLOWED  
-
-                    👤 {user['name']}  
-                    📧 {user['email']}  
-                    🎯 Event: {selected_event}
-                    """)
-
-                    st.balloons()
-
-                    st.rerun()
-
+            if user.get("checked_in"):
+                st.warning(f"⚠ Already Entered: {user['name']}")
             else:
-                st.error("❌ Invalid QR for this event")
+                supabase.table("registrations").update({
+                    "checked_in": True,
+                    "scanned_at": datetime.now().isoformat()
+                }).eq("id", user["id"]).execute()
+
+                # 🔊 BEEP
+                st.markdown("""
+                <audio autoplay>
+                    <source src="https://www.soundjay.com/buttons/sounds/beep-07.mp3" type="audio/mpeg">
+                </audio>
+                """, unsafe_allow_html=True)
+
+                st.success(f"""
+                ✅ ENTRY ALLOWED  
+
+                👤 {user['name']}  
+                📧 {user['email']}  
+                🎯 Event: {selected_event}
+                """)
+
+                st.balloons()
+
+                # reset QR to avoid multiple scans
+                st.session_state["scanned_qr"] = None
 
         else:
-            st.error("❌ No QR detected")
+            st.error("❌ Invalid QR")
