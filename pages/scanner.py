@@ -1,6 +1,5 @@
 import streamlit as st
 from utils.db import supabase
-import av
 import cv2
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 from datetime import datetime
@@ -71,50 +70,47 @@ def show():
 
         st.success(f"QR Detected: {qr_data}")
 
-       try:
+        try:
             res = supabase.table("registrations") \
-            .select("*") \
-            .eq("qr_id", qr_data) \
-            .execute()
+                .select("*") \
+                .eq("qr_id", qr_data) \
+                .execute()
 
-        if not res.data:
-            st.error("❌ Invalid QR")
-            return
+            if not res.data:
+                st.error("❌ Invalid QR")
+                return
 
-        user = res.data[0]
-
-    except Exception as e:
-        st.error(f"DB Error: {e}")
-        return
             user = res.data[0]
 
-            if user.get("checked_in"):
-                st.warning(f"⚠ Already Entered: {user['name']}")
-            else:
-                supabase.table("registrations").update({
-                    "checked_in": True,
-                    "scanned_at": datetime.now().isoformat()
-                }).eq("id", user["id"]).execute()
+        except Exception as e:
+            st.error(f"DB Error: {e}")
+            return
 
-                # 🔊 BEEP
-                st.markdown("""
-                <audio autoplay>
-                    <source src="https://www.soundjay.com/buttons/sounds/beep-07.mp3" type="audio/mpeg">
-                </audio>
-                """, unsafe_allow_html=True)
-
-                st.success(f"""
-                ✅ ENTRY ALLOWED  
-
-                👤 {user['name']}  
-                📧 {user['email']}  
-                🎯 Event: {selected_event}
-                """)
-
-                st.balloons()
-
-                # reset QR to avoid multiple scans
-                st.session_state["scanned_qr"] = None
-
+        # 🔥 ENTRY LOGIC
+        if user.get("checked_in"):
+            st.warning(f"⚠ Already Entered: {user['name']}")
         else:
-            st.error("❌ Invalid QR")
+            supabase.table("registrations").update({
+                "checked_in": True,
+                "scanned_at": datetime.now().isoformat()
+            }).eq("id", user["id"]).execute()
+
+            # 🔊 BEEP
+            st.markdown("""
+            <audio autoplay>
+                <source src="https://www.soundjay.com/buttons/sounds/beep-07.mp3" type="audio/mpeg">
+            </audio>
+            """, unsafe_allow_html=True)
+
+            st.success(f"""
+            ✅ ENTRY ALLOWED  
+
+            👤 {user['name']}  
+            📧 {user['email']}  
+            🎯 Event: {selected_event}
+            """)
+
+            st.balloons()
+
+            # reset QR
+            st.session_state["scanned_qr"] = None
