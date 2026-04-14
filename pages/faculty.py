@@ -91,29 +91,35 @@ def show():
         """)
 
         col1, col2 = st.columns(2)
-
-        if col1.button("✅ Approve", key=f"a_{u['id']}"):
+#Approve
+    if col1.button("✅ Approve", key=f"a_{u['id']}"):
 
     try:
-        # 🔥 Generate unique QR
+        import uuid
+        from utils.qr import generate_qr
+        from utils.mail import send_qr
+
         qr_id = str(uuid.uuid4())
 
-        # 🔥 Generate QR image
         qr_path = generate_qr(qr_id)
 
-        # 🔥 Update DB
+        st.write("QR Path:", qr_path)  # 👈 DEBUG
+
+        # update DB
         supabase.table("registrations").update({
             "status": "approved",
             "qr_id": qr_id
         }).eq("id", u["id"]).execute()
 
-        # 🔥 SEND EMAIL
+        # send mail
+        st.write("Sending mail to:", u["email"])  # 👈 DEBUG
+
         send_qr(u["email"], qr_path)
 
-        st.success("✅ Approved & Mail Sent")
+        st.success("Approved + Mail triggered")
 
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"ERROR: {e}")
 
     st.rerun()
 
