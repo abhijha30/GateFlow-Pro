@@ -41,10 +41,11 @@ def show():
     # ================= FORM =================
     if "selected_event" in st.session_state:
 
-    e = st.session_state.get("selected_event")
+        e = st.session_state.get("selected_event")
 
-    if not e:
-        return
+        if not e:
+            return
+
         st.divider()
         st.markdown(f"### 📝 Register for {e['name']}")
 
@@ -71,7 +72,7 @@ def show():
                 st.warning("Already applied for this event")
                 return
 
-            # ✅ INSERT DATA (NO register_user needed)
+            # ✅ INSERT DATA
             supabase.table("registrations").insert({
                 "user_id": user["id"],
                 "event_id": e["id"],
