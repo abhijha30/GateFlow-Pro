@@ -37,34 +37,8 @@ def show():
     event_id = event_map[selected_event]
 
     st.divider()
-    
-    # 🔥 COUNTERS
-total = supabase.table("registrations") \
-    .select("*", count="exact") \
-    .eq("event_id", event_id) \
-    .execute()
 
-approved = supabase.table("registrations") \
-    .select("*", count="exact") \
-    .eq("event_id", event_id) \
-    .eq("status", "approved") \
-    .execute()
-
-scanned = supabase.table("registrations") \
-    .select("*", count="exact") \
-    .eq("event_id", event_id) \
-    .eq("checked_in", True) \
-    .execute()
-
-st.markdown(f"""
-### 📊 Live Event Stats  
-
-👥 Total Registered: **{total.count}**  
-✅ Approved: **{approved.count}**  
-🎟 Scanned Entry: **{scanned.count}**
-""")
-
-    # 🔥 START / STOP CONTROL
+    # 🔥 SCANNER STATE
     if "scanner_on" not in st.session_state:
         st.session_state["scanner_on"] = False
 
@@ -106,10 +80,10 @@ st.markdown(f"""
             st.error(f"DB Error: {e}")
             return
 
-        # 🔥 STOP CAMERA AFTER SCAN
+        # 🔴 STOP CAMERA AFTER SCAN
         st.session_state["scanner_on"] = False
 
-        # 🔥 CHECK ENTRY
+        # 🔥 ENTRY LOGIC
         if user.get("checked_in"):
             st.warning(f"⚠ Already Present: {user['name']}")
         else:
@@ -118,24 +92,15 @@ st.markdown(f"""
                 "scanned_at": datetime.now().isoformat()
             }).eq("id", user["id"]).execute()
 
-            # 🔊 BEEP
-            st.markdown("""
-            <audio autoplay>
-                <source src="https://www.soundjay.com/buttons/sounds/beep-07.mp3" type="audio/mpeg">
-            </audio>
-            """, unsafe_allow_html=True)
-
-            # 🎯 SHOW DETAILS
             st.success(f"""
             ✅ ENTRY MARKED  
 
-            👤 Name: {user['name']}  
-            📧 Email: {user['email']}  
-            🎓 Course: {user.get('course','')}  
+            👤 {user['name']}  
+            📧 {user['email']}  
             🎯 Event: {selected_event}
             """)
 
-        # 🔥 RESET BUTTON
+        # 🔄 RESET BUTTON
         if st.button("🔄 Scan Next Student"):
             st.session_state["scanned_qr"] = None
             st.session_state["scanner_on"] = True
