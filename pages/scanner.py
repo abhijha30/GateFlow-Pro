@@ -71,14 +71,21 @@ def show():
 
         st.success(f"QR Detected: {qr_data}")
 
-        res = supabase.table("registrations") \
-            .select("*") \
-            .eq("qr_id", qr_data) \
-            .eq("event_id", event_id) \
-            .execute()
+       try:
+    res = supabase.table("registrations") \
+        .select("*") \
+        .eq("qr_id", qr_data) \
+        .execute()
 
-        if res.data:
+    if not res.data:
+        st.error("❌ Invalid QR")
+        return
 
+    user = res.data[0]
+
+except Exception as e:
+    st.error(f"DB Error: {e}")
+    return
             user = res.data[0]
 
             if user.get("checked_in"):
