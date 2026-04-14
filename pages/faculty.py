@@ -17,13 +17,6 @@ def get_registrations(event_id):
         .eq("event_id", event_id) \
         .execute()
 
-# ================= UPDATE STATUS =================
-def update_status(user_id, status):
-    return supabase.table("registrations") \
-        .update({"status": status}) \
-        .eq("id", user_id) \
-        .execute()
-
 # ================= MAIN =================
 def show():
 
@@ -40,7 +33,7 @@ def show():
     venue = st.text_input("Venue")
     capacity = st.number_input("Capacity", min_value=1)
 
-    poster = st.file_uploader("Upload Poster", type=["png","jpg","jpeg"])
+    poster = st.file_uploader("Upload Poster", type=["png", "jpg", "jpeg"])
 
     if st.button("Create Event", use_container_width=True):
 
@@ -74,12 +67,25 @@ def show():
     selected_event_name = st.selectbox("Select Event", list(event_map.keys()))
     selected_event_id = event_map[selected_event_name]
 
-    # ✅ CORRECT INDENTATION STARTS HERE
     data = get_registrations(selected_event_id).data or []
 
     if not data:
         st.info("No registrations for this event")
         return
+
+    # ================= STATS =================
+    total = len(data)
+    approved = len([d for d in data if d.get("status") == "approved"])
+    scanned = len([d for d in data if d.get("checked_in") == True])
+
+    st.markdown(f"""
+    ### 📊 Event Stats  
+    👥 Total: **{total}**  
+    ✅ Approved: **{approved}**  
+    🎟 Scanned: **{scanned}**
+    """)
+
+    st.divider()
 
     # ================= REGISTRATION LIST =================
     for i, u in enumerate(data, start=1):
@@ -93,74 +99,73 @@ def show():
 
         col1, col2 = st.columns(2)
 
-    # ================= DOWNLOAD EXCEL =================
-st.divider()
-st.subheader("📥 Download Attendance")
+        # ✅ APPROVE
+        if col1.button("✅ Approve", key=f"a_{u['id']}"):
 
-if st.button("⬇ Download Excel", use_container_width=True):
+            try:
+                qr_id = str(uuid.uuid4())
+                qr_path = generate_qr(qr_id)
 
-    data = supabase.table("registrations") \
-        .select("*") \
-        .eq("event_id", selected_event_id) \
-        .execute()
+                supabase.table("registrations").update({
+                    "status": "approved",
+                    "qr_id": qr_id
+                }).eq("id", u["id"]).execute()
 
-    rows = data.data or []
+                send_qr(u["email"], qr_path)
 
-    if not rows:
-        st.warning("No data to download")
-    else:
-        df = pd.DataFrame(rows)
+                st.success("✅ Approved & Mail Sent")
 
-        # Optional: clean columns
-        df = df[[
-            "name", "email", "mobile", "course", "year",
-            "status", "checked_in", "scanned_at"
-        ]]
+            except Exception as e:
+                st.error(f"Error: {e}")
 
-        file_name = f"{selected_event_name}_attendance.xlsx"
+            st.rerun()
 
-        df.to_excel(file_name, index=False)
+        # ❌ REJECT
+        if col2.button("❌ Reject", key=f"r_{u['id']}"):
 
-        with open(file_name, "rb") as f:
-            st.download_button(
-                label="📥 Download File",
-                data=f,
-                file_name=file_name,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-#Approve
-    if col1.button("✅ Approve", key=f"a_{u['id']}"):
-
-        try:
-            import uuid
-            from utils.qr import generate_qr
-            from utils.mail import send_qr
-        
-            qr_id = str(uuid.uuid4())
-
-            qr_path = generate_qr(qr_id)
-    
-        # update DB
             supabase.table("registrations").update({
-                "status": "approved",
-                "qr_id": qr_id
+                "status": "rejected"
             }).eq("id", u["id"]).execute()
 
-        # send mail
-            send_qr(u["email"], qr_path)
-
-            st.success("✅ Approved & Mail Sent")
-
-        except Exception as e:
-            st.error(f"Error: {e}")
-
-        st.rerun()
-
-        
-
-        if col2.button("❌ Reject", key=f"r_{u['id']}"):
-            update_status(u["id"], "rejected")
             st.error("Rejected")
             st.rerun()
 
         st.divider()
+
+    # ================= DOWNLOAD EXCEL =================
+    st.subheader("📥 Download Full Report")
+
+    if st.button("⬇ Download Full Excel Report", use_container_width=True):
+
+        df = pd.DataFrame(data)
+
+        # 🔥 SUMMARY
+        summary_df = pd.DataFrame({
+            "Metric": ["Total Registrations", "Approved", "Scanned"],
+            "Count": [
+                total,
+                approved,
+                scanned
+            ]
+        })
+
+        # 🔥 CLEAN DATA
+        df = df[[
+            "name", "email", "mobile",
+            "course", "year",
+            "status", "checked_in", "scanned_at"
+        ]]
+
+        file_name = f"{selected_event_name}_report.xlsx"
+
+        # 🔥 MULTI SHEET
+        with pd.ExcelWriter(file_name, engine="openpyxl") as writer:
+            summary_df.to_excel(writer, sheet_name="Summary", index=False)
+            df.to_excel(writer, sheet_name="Attendance", index=False)
+
+        with open(file_name, "rb") as f:
+            st.download_button(
+                "📥 Download Excel",
+                f,
+                file_name=file_name
+            )
