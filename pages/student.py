@@ -52,6 +52,8 @@ def show():
         course = st.selectbox("Course", ["BBA", "BCA"])
         year = st.selectbox("Year", ["1st", "2nd", "3rd"])
 
+        section = st.text_input("Section")
+
         if st.button("Submit Application", use_container_width=True):
 
             mobile = mobile.strip()
@@ -80,6 +82,7 @@ def show():
                 "mobile": mobile,
                 "course": course,
                 "year": year,
+                "section": section,
                 "status": "pending"
             }).execute()
 
