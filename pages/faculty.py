@@ -101,7 +101,6 @@ def show():
 
         # ✅ APPROVE
         if col1.button("✅ Approve", key=f"a_{u['id']}"):
-
             try:
                 qr_id = str(uuid.uuid4())
                 qr_path = generate_qr(qr_id)
@@ -122,7 +121,6 @@ def show():
 
         # ❌ REJECT
         if col2.button("❌ Reject", key=f"r_{u['id']}"):
-
             supabase.table("registrations").update({
                 "status": "rejected"
             }).eq("id", u["id"]).execute()
@@ -131,82 +129,66 @@ def show():
             st.rerun()
 
         st.divider()
-# ================= DOWNLOAD EXCEL =================
-st.subheader("📥 Download Full Report")
 
-if st.button("⬇ Download Full Excel Report", use_container_width=True):
+    # ================= DOWNLOAD EXCEL =================
+    st.subheader("📥 Download Full Report")
 
-    df = pd.DataFrame(data)
+    if st.button("⬇ Download Full Excel Report", use_container_width=True):
 
-    if df.empty:
-        st.warning("No data available")
-        return
+        df = pd.DataFrame(data)
 
-    # 🔥 ADD CLEAN COLUMNS
-    df["Status"] = df["status"].str.capitalize()
+        if df.empty:
+            st.warning("No data available")
+            return
 
-    df["Attendance"] = df["checked_in"].apply(
-        lambda x: "Present" if x else "Absent"
-    )
-
-    # 🔥 HANDLE MISSING SECTION COLUMN
-    if "section" not in df.columns:
-        df["section"] = "N/A"
-
-    # 🔥 CLEAN DATA FOR REPORT
-    df = df[[
-        "name",
-        "email",
-        "mobile",
-        "course",
-        "year",
-        "section",
-        "Status",
-        "Attendance",
-        "scanned_at"
-    ]]
-
-    df.columns = [
-        "Name",
-        "Email",
-        "Mobile",
-        "Course",
-        "Year",
-        "Section",
-        "Approval Status",
-        "Attendance",
-        "Scan Time"
-    ]
-
-    # 🔥 SUMMARY SHEET
-    summary_df = pd.DataFrame({
-        "Metric": [
-            "Total Registrations",
-            "Approved",
-            "Rejected",
-            "Scanned (Present)"
-        ],
-        "Count": [
-            len(df),
-            len(df[df["Approval Status"] == "Approved"]),
-            len(df[df["Approval Status"] == "Rejected"]),
-            len(df[df["Attendance"] == "Present"])
-        ]
-    })
-
-    file_name = f"{selected_event_name}_report.xlsx"
-
-    # 🔥 MULTI-SHEET EXCEL
-    with pd.ExcelWriter(file_name, engine="openpyxl") as writer:
-        summary_df.to_excel(writer, sheet_name="Summary", index=False)
-        df.to_excel(writer, sheet_name="Student Data", index=False)
-
-    with open(file_name, "rb") as f:
-        st.download_button(
-            "📥 Download Excel",
-            f,
-            file_name=file_name,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        # ✅ CLEAN COLUMNS
+        df["Status"] = df["status"].str.capitalize()
+        df["Attendance"] = df["checked_in"].apply(
+            lambda x: "Present" if x else "Absent"
         )
-   
-            
+
+        # ✅ HANDLE SECTION
+        if "section" not in df.columns:
+            df["section"] = "N/A"
+
+        df = df[[
+            "name", "email", "mobile",
+            "course", "year", "section",
+            "Status", "Attendance", "scanned_at"
+        ]]
+
+        df.columns = [
+            "Name", "Email", "Mobile",
+            "Course", "Year", "Section",
+            "Approval Status", "Attendance", "Scan Time"
+        ]
+
+        # ✅ SUMMARY
+        summary_df = pd.DataFrame({
+            "Metric": [
+                "Total Registrations",
+                "Approved",
+                "Rejected",
+                "Scanned (Present)"
+            ],
+            "Count": [
+                len(df),
+                len(df[df["Approval Status"] == "Approved"]),
+                len(df[df["Approval Status"] == "Rejected"]),
+                len(df[df["Attendance"] == "Present"])
+            ]
+        })
+
+        file_name = f"{selected_event_name}_report.xlsx"
+
+        with pd.ExcelWriter(file_name, engine="openpyxl") as writer:
+            summary_df.to_excel(writer, sheet_name="Summary", index=False)
+            df.to_excel(writer, sheet_name="Student Data", index=False)
+
+        with open(file_name, "rb") as f:
+            st.download_button(
+                "📥 Download Excel",
+                f,
+                file_name=file_name,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
