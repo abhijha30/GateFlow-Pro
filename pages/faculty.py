@@ -131,41 +131,82 @@ def show():
             st.rerun()
 
         st.divider()
+# ================= DOWNLOAD EXCEL =================
+st.subheader("📥 Download Full Report")
 
-    # ================= DOWNLOAD EXCEL =================
-    st.subheader("📥 Download Full Report")
+if st.button("⬇ Download Full Excel Report", use_container_width=True):
 
-    if st.button("⬇ Download Full Excel Report", use_container_width=True):
+    df = pd.DataFrame(data)
 
-        df = pd.DataFrame(data)
+    if df.empty:
+        st.warning("No data available")
+        return
 
-        # 🔥 SUMMARY
-        summary_df = pd.DataFrame({
-            "Metric": ["Total Registrations", "Approved", "Scanned"],
-            "Count": [
-                total,
-                approved,
-                scanned
-            ]
-        })
+    # 🔥 ADD CLEAN COLUMNS
+    df["Status"] = df["status"].str.capitalize()
 
-        # 🔥 CLEAN DATA
-        df = df[[
-            "name", "email", "mobile",
-            "course", "year",
-            "status", "checked_in", "scanned_at"
-        ]]
+    df["Attendance"] = df["checked_in"].apply(
+        lambda x: "Present" if x else "Absent"
+    )
 
-        file_name = f"{selected_event_name}_report.xlsx"
+    # 🔥 HANDLE MISSING SECTION COLUMN
+    if "section" not in df.columns:
+        df["section"] = "N/A"
 
-        # 🔥 MULTI SHEET
-        with pd.ExcelWriter(file_name, engine="openpyxl") as writer:
-            summary_df.to_excel(writer, sheet_name="Summary", index=False)
-            df.to_excel(writer, sheet_name="Attendance", index=False)
+    # 🔥 CLEAN DATA FOR REPORT
+    df = df[[
+        "name",
+        "email",
+        "mobile",
+        "course",
+        "year",
+        "section",
+        "Status",
+        "Attendance",
+        "scanned_at"
+    ]]
 
-        with open(file_name, "rb") as f:
-            st.download_button(
-                "📥 Download Excel",
-                f,
-                file_name=file_name
-            )
+    df.columns = [
+        "Name",
+        "Email",
+        "Mobile",
+        "Course",
+        "Year",
+        "Section",
+        "Approval Status",
+        "Attendance",
+        "Scan Time"
+    ]
+
+    # 🔥 SUMMARY SHEET
+    summary_df = pd.DataFrame({
+        "Metric": [
+            "Total Registrations",
+            "Approved",
+            "Rejected",
+            "Scanned (Present)"
+        ],
+        "Count": [
+            len(df),
+            len(df[df["Approval Status"] == "Approved"]),
+            len(df[df["Approval Status"] == "Rejected"]),
+            len(df[df["Attendance"] == "Present"])
+        ]
+    })
+
+    file_name = f"{selected_event_name}_report.xlsx"
+
+    # 🔥 MULTI-SHEET EXCEL
+    with pd.ExcelWriter(file_name, engine="openpyxl") as writer:
+        summary_df.to_excel(writer, sheet_name="Summary", index=False)
+        df.to_excel(writer, sheet_name="Student Data", index=False)
+
+    with open(file_name, "rb") as f:
+        st.download_button(
+            "📥 Download Excel",
+            f,
+            file_name=file_name,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+   
+            
